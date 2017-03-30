@@ -27,7 +27,7 @@ class ZhihuSpider(scrapy.Spider):
 
     def start_requests(self):
         """
-        ZhihuSpider的入口,首先在这里进行请求，从登陆页面得到response，并调用login函数
+        ZhihuSpider的入口,首先在这里进行请求，从登陆页面得到response，并调用login函数。
         """
         return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login)]
 
