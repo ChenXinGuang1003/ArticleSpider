@@ -43,36 +43,39 @@ class ArticleImagesPipeline(ImagesPipeline):
     继承ImagesPipeline，重写item_completed方法
     """
     def item_completed(self, results, item, info):
-        for ok, value in results:
-            image_file_path = value["path"]
-        # 下载完成后记录图片存储路径
-        item["front_image_path"] = image_file_path
+        # 如果item的values里,注意不是fields里,注意观察item的values和fields，图片相关字段，则从results里提取图片的path
+        if "front_image_url" in item:
+            for ok, value in results:
+                image_file_path = value["path"]
+            # 下载完成后记录图片存储路径
+            item["front_image_path"] = image_file_path
         # 按照优先值，给pipeline执行完后将执行ArticlespiderPipeline，返回一个item
         return item
 
 
-class MySQLPipeline(object):
-    """
-    将爬取的内容保存到数据库
-    这里需要注意的是item["front_image_path"]是在ArticleImagesPipeline中被赋值，所以在settings文件中ArticleImagesPipeline
-    的优先值应该大于MySQLPipeline
-    另外，这是同步插入，在后期会出现插入速度跟不上爬取内容的速度，造成堵塞
-    """
-    def __init__(self):
-        self.conn = MySQLdb.connect('127.0.0.1', 'root', 'ssjusher123', 'articlespider', charset="utf8mb4", use_unicode=True)
-        self.cursor = self.conn.cursor()
-
-    def process_item(self, item, spider):
-        insert_sql = """
-            insert into jobbole_article(title, create_date, url, url_object_id, front_image_url, front_image_path,
-            tag, content)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        # 注意front_image_url在保存到item时是以list的形式，所以想要提取出来
-        front_image_url = item["front_image_url"][0]
-        self.cursor.execute(insert_sql, (item["title"], item["create_date"], item["url"], item["url_object_id"],
-                                         front_image_url, item["front_image_path"], item["tag"], item["content"]))
-        self.conn.commit()
+# class MySQLPipeline(object):
+#     """
+#     将爬取的内容保存到数据库
+#     这里需要注意的是item["front_image_path"]是在ArticleImagesPipeline中被赋值，所以在settings文件中ArticleImagesPipeline
+#     的优先值应该大于MySQLPipeline
+#     另外，这是同步插入，在后期会出现插入速度跟不上爬取内容的速度，造成堵塞
+#     """
+#     def __init__(self):
+#         self.conn = MySQLdb.connect('127.0.0.1', 'root', 'ssjusher123', 'articlespider', charset="utf8mb4", use_unicode=True)
+#         self.cursor = self.conn.cursor()
+#
+#     def process_item(self, item, spider):
+#         insert_sql = """
+#             insert into jobbole_article(title, create_date, url, url_object_id, front_image_url, front_image_path,
+#             tag, content, fav_nums)
+#             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+#         """
+#         # 注意front_image_url在保存到item时是以list的形式，所以想要提取出来
+#         front_image_url = item["front_image_url"][0]
+#         self.cursor.execute(insert_sql, (item["title"], item["create_date"], item["url"], item["url_object_id"],
+#                                          front_image_url, item["front_image_path"], item["tag"], item["content"],
+#                                          item["fav_nums"]))
+#         self.conn.commit()
 
 
 class MySQLTwistedPipeline(object):
@@ -107,18 +110,10 @@ class MySQLTwistedPipeline(object):
 
     def handle_error(self, failure, item, spider):
         # 处理异步插入的异常
-        print (failure)
+        print(failure)
 
     def do_insert(self, cursor, item):
-        """
-        插入逻辑
-        """
-        insert_sql = """
-            insert into jobbole_article(title, create_date, url, url_object_id, front_image_url, front_image_path,
-            tag, content)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        # 注意front_image_url在保存到item时是以list的形式，所以想要提取出来
-        front_image_url = item["front_image_url"][0]
-        cursor.execute(insert_sql, (item["title"], item["create_date"], item["url"], item["url_object_id"],
-                                    front_image_url, item["front_image_path"], item["tag"], item["content"]))
+        # 执行具体的插入
+        # 根据不同的item 构建不同的sql语句并插入到mysql中
+        insert_sql, params = item.get_insert_sql()
+        cursor.execute(insert_sql, params)
