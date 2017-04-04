@@ -5,7 +5,7 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 """
-执行的顺序按照settings文件中的ITEM_PIPELINES中配置的优先值
+执行的顺序按照settings文件中的ITEM_PIPELINES中配置的优先值.
 """
 import codecs
 import json
