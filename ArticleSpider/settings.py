@@ -102,3 +102,8 @@ MYSQL_HOST = "127.0.0.1"
 MYSQL_DBNAME = "articlespider"
 MYSQL_USER = "root"
 MYSQL_PASSWORD = "ssjusher123"
+
+SQL_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+SQL_DATE_FORMAT = "%Y-%m-%d"
+
+ES_HOST = "127.0.0.1"

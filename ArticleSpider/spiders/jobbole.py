@@ -3,8 +3,7 @@ from scrapy.http import Request
 from urllib import parse
 import scrapy
 
-from ArticleSpider.items import JobBoleArticleItem
-from ArticleSpider.items import ArticleItemLoader
+from ArticleSpider.items import JobBoleArticleItem, ArticleItemLoader
 from ArticleSpider.utils.common import get_md5
 
 
