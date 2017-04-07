@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from PIL import Image
 import scrapy
 import re
 import json
+import time
 try:
     # Python3
     from urllib import parse
@@ -10,7 +12,8 @@ except:
     # Python2
     import urlparse as parse
 
-from ArticleSpider.items import ZhihuAnswerItem, ZhihuQuestionItem, QuestionItemLoader
+from items import ZhihuAnswerItem, ZhihuQuestionItem
+from scrapy.loader import ItemLoader
 
 
 class ZhihuSpider(scrapy.Spider):
@@ -57,7 +60,7 @@ class ZhihuSpider(scrapy.Spider):
         由于知乎已经全面采用新版页面，因此考虑老版页面的情况
         """
         question_id = int(response.meta.get("question_id", ""))
-        item_loader = QuestionItemLoader(item=ZhihuQuestionItem, response=response)
+        item_loader = ItemLoader(item=ZhihuQuestionItem, response=response)
         item_loader.add_css("title", ".QuestionHeader-content h1::text")
         item_loader.add_css("content", ".QuestionHeader-detail span::text")
         item_loader.add_value("url", response.url)
@@ -120,19 +123,42 @@ class ZhihuSpider(scrapy.Spider):
         # 得到xsrf code的情况下，才尝试登陆
         if xsrf:
             # 这里以手机号登陆为例
-            post_url = "https://www.zhihu.com/login/phone_num"
             post_data = {
                 "_xsrf": xsrf,
                 "phone_num": "13419516267",
-                "password": "ssjusher123"
+                "password": "ssjusher123",
+                "captcha": ""
             }
-            # 尝试登陆
-            return [scrapy.FormRequest(
-                url=post_url,
-                formdata=post_data,
-                headers=self.headers,
-                callback=self.check_login
-            )]
+            # 这里为了获得验证码图片，在发送一个取得验证码图片的请求，将登陆延迟到login_after_captcha函数中，scrapy的Requests会自动管理cookies
+            # 当然也可以直接通过requests来发送相应请求来获得验证码图片，不过要设置cookies，从response里获得,确保cookies一致
+            numbers = str(int(time.time()*1000))
+            captcha_url = "https://www.zhihu.com/captcha.gif?r={0}&type=login".format(numbers)
+            yield scrapy.Request(captcha_url, meta={"post_data": post_data}, headers=self.headers,
+                                 callback=self.login_after_captcha)
+
+    def login_after_captcha(self, response):
+        post_url = "https://www.zhihu.com/login/phone_num"
+        post_data = response.meta.get("post_data", {})
+        with open("captcha.jpg", "wb") as f:
+                f.write(response.body)
+
+        try:
+            # 显示验证码
+            im = Image.open("captcha.jpg")
+            im.show()
+            im.close()
+        except Exception as e:
+            print(e)
+
+        captcha = input("请手动输入验证码:")
+        post_data["captcha"] = captcha
+        # 尝试登陆
+        return [scrapy.FormRequest(
+            url=post_url,
+            formdata=post_data,
+            headers=self.headers,
+            callback=self.check_login
+        )]
 
     def check_login(self, response):
         """

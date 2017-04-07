@@ -3,8 +3,8 @@ from scrapy.http import Request
 from urllib import parse
 import scrapy
 
-from ArticleSpider.items import JobBoleArticleItem, ArticleItemLoader
-from ArticleSpider.utils.common import get_md5
+from items import JobBoleArticleItem, ArticleItemLoader
+from utils.common import get_md5
 
 
 class JobboleSpider(scrapy.Spider):
@@ -79,5 +79,3 @@ class JobboleSpider(scrapy.Spider):
         article_item = item_loader.load_item()
         # 调用后传递到pipelines.py
         yield article_item
-
-

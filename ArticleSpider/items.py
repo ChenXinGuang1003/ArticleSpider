@@ -7,6 +7,7 @@
 from scrapy.loader import ItemLoader
 from scrapy.loader.processors import MapCompose, TakeFirst, Join
 from datetime import datetime
+from w3lib.html import remove_tags
 import scrapy
 import re
 
@@ -37,12 +38,62 @@ def return_value(value):
 
 def remove_comment_tags(value):
     """
-    tag可能包括评论这一元素，有的话则去除
+    tag可能包括评论这一元素，有的话则去除(伯乐网)
     """
     if "评论" in value:
         return ""
     else:
         return value
+
+
+def get_salary(value):
+    """
+    获取最低和最高薪资，没有最高薪资，设最高为0(拉勾网)
+    :return: tuple (salary_min, salary_max) 
+    """
+    pat_1 = re.compile('(\d+).*?(\d+).*')
+    pat_2 = re.compile('(\d+).*')
+    salary = []
+    try:
+        match_obj = pat_1.match(value)
+        salary.append((int(match_obj.group(1)), int(match_obj.group(2))))
+        salary.append()
+    except:
+        match_obj = pat_2.match(value)
+        salary.append((int(match_obj.group(1)), 0))
+    return salary
+
+
+def get_work_years(value):
+    """
+    获取最低和最高工作经验年限,无最高工作经验年限，设为0(拉勾网)
+    :return: tuple (work_years_min, work_years_max) 
+    """
+    value = value.strip('/').strip()
+    work_years = []
+    if value == "经验不限":
+        return value
+    elif value == "经验应届毕业生 ":
+        return value
+    else:
+        pat_1 = re.compile('.*?(\d+).+?(\d+).*')
+        pat_2 = re.compile('.*?(\d+).*')
+        match_obj = pat_1.match(value)
+        if match_obj:
+            work_years.append((int(match_obj.group(1)), int(match_obj.group(2))))
+        else:
+            match_obj = pat_2.match(value)
+            work_years.append((int(match_obj.group(1)), 0))
+    return work_years
+
+
+def handle_address(value):
+    """
+    处理职位信息中地址的格式(拉勾网)
+    """
+    address_list = value.split("\n")
+    address_list = [item.strip() for item in address_list if item.strip() != "查看地图"]
+    return "".join(address_list)
 
 
 class ArticleItemLoader(ItemLoader):
@@ -51,8 +102,8 @@ class ArticleItemLoader(ItemLoader):
     default_output_processor = TakeFirst()
 
 
-class QuestionItemLoader(ItemLoader):
-    # 自定义知乎问题itemloader
+class LagouJobItemLoader(ItemLoader):
+    # 自定义职位信息itemloader
     # 配置默认的output_processor,取出list中的第一个元素
     default_output_processor = TakeFirst()
 
@@ -176,5 +227,53 @@ class ZhihuAnswerItem(scrapy.Item):
 
         params = (zhihu_id, url, question_id, author_id, content, praise_num, comments_num, create_time, update_time,
                   crawl_time)
+
+        return insert_sql, params
+
+
+class LagouJobItem(scrapy.Item):
+    # 拉勾网职位item
+    title = scrapy.Field()
+    url = scrapy.Field()
+    url_object_id = scrapy.Field()
+    salary = scrapy.Field(
+        input_processor=MapCompose(get_salary)
+    )
+    job_city = scrapy.Field(
+        input_processor=MapCompose(lambda x: x.strip('/').strip())
+    )
+    work_years = scrapy.Field(
+        input_processor=MapCompose(get_work_years)
+    )
+    degree_need = scrapy.Field(
+        input_processor=MapCompose(lambda x: x.strip('/').strip())
+    )
+    job_type = scrapy.Field()
+    publish_time = scrapy.Field()
+    job_advantage = scrapy.Field()
+    job_desc = scrapy.Field()
+    job_address = scrapy.Field(
+        input_processor=MapCompose(remove_tags, handle_address)
+    )
+    company_name = scrapy.Field()
+    company_url = scrapy.Field()
+    tags = scrapy.Field(
+        # 将tag元素串联起来
+        output_processor=Join(",")
+    )
+    crawl_time = scrapy.Field()
+
+    def get_insert_sql(self):
+        insert_sql = """
+            insert into lagou(url, url_object_id, title, salary_min, salary_max, job_city, work_years_min,
+              work_years_max, degree_need, job_type, publish_time, tags, job_advantage, job_desc, job_addr, company_url,
+               company_name, crawl_time
+              ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+              ON DUPLICATE KEY UPDATE title=VALUES(title), comments_num=VALUES(comments_num) 
+        """
+        params = (self["url"], self["url_object_id"], self["title"], self["salary"][0], self["salary"][1],
+                  self["job_city"], self["work_years"][0], self["work_years"][1], self["degree_need"], self["job_type"],
+                  self["publish_time"], self["tags"], self["job_advantage"], self["job_desc"], self["job_address"],
+                  self["company_url"], self["company_name"], self["crawl_time"].strftime(SQL_DATETIME_FORMAT))
 
         return insert_sql, params

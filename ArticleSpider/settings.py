@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 # Scrapy settings for ArticleSpider project
 #
 # For simplicity, this file contains only settings considered important or
@@ -75,6 +76,10 @@ IMAGES_URLS_FIELD = 'front_image_url'
 # 指定文件存储路径
 project_dir = os.path.abspath(os.path.dirname(__file__))
 IMAGES_STORE = os.path.join(project_dir, 'images')
+
+# 将ArticleSpider项目中的ArticleSpider文件夹所在路径添加到系统搜索路径
+BASE_DIR = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(BASE_DIR, "ArticleSpider"))
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html
