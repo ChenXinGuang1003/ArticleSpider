@@ -44,7 +44,7 @@ class LagouSpider(CrawlSpider):
         item_loader.add_css("publish_time", '.publish_time::text')
         item_loader.add_css("job_advantage", '.job-advantage p::text')
         item_loader.add_css("job_desc", '.job_bt div')
-        # 地点的提取处理放在item里完成
+        # 地点的提取处理放在item里完成。
         item_loader.add_css("job_address", '.work_addr')
         item_loader.add_css("company_name", '.job_company dt a img::attr(alt)')
         item_loader.add_css("company_url", '.job_company dt a::attr(href)')

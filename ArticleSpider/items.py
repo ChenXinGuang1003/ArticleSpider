@@ -269,7 +269,7 @@ class LagouJobItem(scrapy.Item):
               work_years_max, degree_need, job_type, publish_time, tags, job_advantage, job_desc, job_addr, company_url,
                company_name, crawl_time
               ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-              ON DUPLICATE KEY UPDATE title=VALUES(title), comments_num=VALUES(comments_num) 
+              ON DUPLICATE KEY UPDATE title=VALUES(title), job_advantage=VALUES(job_advantage) 
         """
         params = (self["url"], self["url_object_id"], self["title"], self["salary"][0], self["salary"][1],
                   self["job_city"], self["work_years"][0], self["work_years"][1], self["degree_need"], self["job_type"],
