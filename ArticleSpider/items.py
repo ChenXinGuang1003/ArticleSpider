@@ -277,3 +277,18 @@ class LagouJobItem(scrapy.Item):
                   self["company_url"], self["company_name"], self["crawl_time"].strftime(SQL_DATETIME_FORMAT))
 
         return insert_sql, params
+
+
+class RentInfoItem(scrapy.Item):
+    title = scrapy.Field()
+    url = scrapy.Field()
+    publish_date = scrapy.Field()
+
+    def get_insert_sql(self):
+        insert_sql = """
+            insert into rent_info(title, url, publish_date) VALUES (%s, %s, %s)
+        """
+
+        params = (self["title"], self["url"], self["publish_date"])
+
+        return insert_sql, params
