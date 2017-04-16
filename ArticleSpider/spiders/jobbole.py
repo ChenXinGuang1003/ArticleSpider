@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from scrapy.http import Request
 from urllib import parse
+from scrapy import signals
+from selenium import webdriver
+from scrapy.xlib.pydispatch import dispatcher
+
 import scrapy
 
 from items import JobBoleArticleItem, ArticleItemLoader
@@ -11,6 +15,18 @@ class JobboleSpider(scrapy.Spider):
     name = "jobbole"
     allowed_domains = ["blog.jobbole.com"]
     start_urls = ['http://blog.jobbole.com/all-posts/']
+
+    #  这里只是示范，爬取伯乐在线文章并不需要动态加载
+    def __init__(self):
+        self.browser = webdriver.Chrome(executable_path="C:/Users/shishengjia/PycharmProjects/chromedriver_win32/chromedriver.exe")
+        super(JobboleSpider, self).__init__()
+        # 使用信号量，当spider关闭的时候调用spider_closed函数关闭浏览器
+        dispatcher.connect(self.spider_closed, signals.spider_closed)
+
+    def spider_closed(self, spider):
+        self.browser.quit()
+
+
 
     def parse(self, response):
         # 当前页的所有文章的url

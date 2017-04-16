@@ -31,16 +31,24 @@ class ZhihuSpider(scrapy.Spider):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"
     }
 
+    custom_settings = {
+        'COOKIES_ENABLED': True
+    }
+
     def parse(self, response):
         """
         提取知乎首页的全部url，并过滤出格式为/question/XXXXXX的url
         """
         all_urls = response.css("a::attr(href)").extract()
+
         # 给所有url拼接上主域名，如果没有主域名的话
         all_urls = [parse.urljoin(response.url, url) for url in all_urls]
-        # 可能包含javas:;，过滤
+
+        # 可能包含javascript:;，过滤
         all_urls = filter(lambda x: True if x.startswith("https") else False, all_urls)
+
         url_pat = re.compile("(.*zhihu.com/question/(\d+))(/|$).*")
+
         # 在parse_question里也可以进行下面的操作，以继续进行跟踪，这里就不再跟踪下去了
         for url in all_urls:
             match_obj = url_pat.match(url)
@@ -57,7 +65,6 @@ class ZhihuSpider(scrapy.Spider):
     def parse_question(self, response):
         """
         提取知乎问题相应字段
-        由于知乎已经全面采用新版页面，因此考虑老版页面的情况
         """
         question_id = int(response.meta.get("question_id", ""))
         item_loader = ItemLoader(item=ZhihuQuestionItem, response=response)

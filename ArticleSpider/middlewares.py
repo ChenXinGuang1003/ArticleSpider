@@ -7,6 +7,10 @@
 
 from scrapy import signals
 from fake_useragent import UserAgent
+from scrapy.http import HtmlResponse
+import time
+
+from .tools import IPManager
 
 
 class ArticlespiderSpiderMiddleware(object):
@@ -76,3 +80,32 @@ class RandomUserAgentMiddleware(object):
             return getattr(self.ua, self.ua_type)
         random_ua = get_ua()
         request.headers.setdefault('User-Agent', get_ua())
+
+
+class RandomProcyMiddleware(object):
+    """
+    动态设置IP代理
+    """
+    def process_request(self, request, spider):
+        random_ip = IPManager.IPManager.get_random_ip()
+        request.meta['proxy'] = random_ip
+
+
+class JSPageMiddleware(object):
+    """
+    scrapy本身是异步的框架，但是这里chrome是同步的请求，性能会下降，所以要重写downloader
+    """
+    def process_item(self, request, spider):
+        """
+        具体哪些网站，哪些url需要使用动态加载，可以自己指定，这里只是做个示范
+        """
+        if spider.name == 'taobao':
+            browser = spider.browser
+            browser.get(request.url)
+            time.sleep(5)
+            return HtmlResponse(url=browser.current_url, body=browser.page_source)
+
+
+
+
+
