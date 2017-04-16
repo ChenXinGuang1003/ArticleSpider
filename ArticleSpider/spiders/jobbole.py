@@ -26,8 +26,6 @@ class JobboleSpider(scrapy.Spider):
     def spider_closed(self, spider):
         self.browser.quit()
 
-
-
     def parse(self, response):
         # 当前页的所有文章的url
         post_nodes = response.css('#archive .floated-thumb .post-thumb a')
